@@ -25,10 +25,11 @@ exports.registerType = function (typeName, handlers) {
 };
 
 require("./custom.js");
-
+var paths = []
+exports.paths = () => paths;
 exports.encode = exports.stringify =
-function encode(value) {
-  return JSON.stringify(toTable(value));
+function encode(value, settings) {
+  return JSON.stringify(toTable(value, settings));
 }
 
 // This array will grow as needed so that we can slice arrays filled with
@@ -48,8 +49,9 @@ function getArrayOfHoles(length) {
   return HOLY_ARRAY.slice(0, length);
 }
 
-function toTable(value) {
+function toTable(value, settings) {
   var values = [];
+  paths = [];
   var getIndex = makeGetIndexFunction(values);
 
   function copy(value) {
@@ -83,10 +85,13 @@ function toTable(value) {
 
         result = {};
       }
-
-      keys.forEach(function (key) {
-        result[key] = getIndex(value[key]);
-      });
+      var basePath = paths[getIndex(value)] || [];
+      if (!settings || settings.maxDepth > basePath.length) {
+        keys.forEach(function (key) {
+          result[key] = getIndex(value[key]);
+          paths[result[key]] = basePath.concat([key])
+        });
+      }
     }
 
     return result;
